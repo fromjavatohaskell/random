@@ -1,0 +1,13 @@
+(gdb) ptype /o struct random_data
+/* offset    |  size */  type = struct random_data {
+/*    0      |     8 */    int32_t *fptr;
+/*    8      |     8 */    int32_t *rptr;
+/*   16      |     8 */    int32_t *state;
+/*   24      |     4 */    int rand_type;
+/*   28      |     4 */    int rand_deg;
+/*   32      |     4 */    int rand_sep;
+/* XXX  4-byte hole  */
+/*   40      |     8 */    int32_t *end_ptr;
+
+                           /* total size (bytes):   48 */
+                         }

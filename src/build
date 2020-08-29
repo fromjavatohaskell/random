@@ -1,0 +1,5 @@
+#!/bin/sh
+rm random_r.o test_random_r.o
+gcc -g -c random_r.c
+gcc -g -c test_random_r.c
+gcc -g -o test_random random_r.o test_random_r.o
