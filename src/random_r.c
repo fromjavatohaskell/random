@@ -1,6 +1,18 @@
 // modified version for the purpose of learning rand algorithms
 // all functions are given alt_ prefix
 // to simplify algorithm analysis I have removed type 0 R.N.G.
+// and refactored some fragments into separate functions
+// the main intent would be reverse ingeneere specification so that it could be used
+// for new implementation (for example in other languages or other platforms)
+//
+// Interesting fact that lower bits has lower amount of randomness
+// Higher bits has higher amount of randomness
+// The least random bit even dropped before return
+//
+// I think that for better randomness we might consider
+// using mix of bits from this RNG
+// Probably that would happen in typical use case scenario
+// when we take random number and divide it by modulo
 
 /*
    Copyright (C) 1995-2020 Free Software Foundation, Inc.
@@ -334,6 +346,7 @@ alt_setstate_r (char *arg_state, struct alt_random_data *buf)
 
 
 /* Remove code for trivial TYPE _ 0 R.N.G.
+   result returns value in range from 0 to 0x7FFF_FFFF  inclusive
 
    If we are using the trivial TYPE _ 0 R.N.G., just do the old linear
    congruential bit.  Otherwise, we do our fancy trinomial stuff, which is the
