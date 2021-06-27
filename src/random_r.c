@@ -1,5 +1,6 @@
 // modified version for the purpose of learning rand algorithms
 // all functions are given alt_ prefix
+// to simplify algorithm analysis I have removed type 0 R.N.G.
 
 /*
    Copyright (C) 1995-2020 Free Software Foundation, Inc.
@@ -55,7 +56,6 @@
  */
 
 //#include <stdlib.h>
-#include <stdbool.h>
 #include <stdint.h>
 #include <stddef.h>
 #include <stdio.h>
@@ -347,11 +347,11 @@ alt_setstate_r (char *arg_state, struct alt_random_data *buf)
    pointer if the front one has wrapped.  Returns a 31-bit random number.  */
 int
 alt_random_r (struct alt_random_data *buf, int32_t *result) {
-  return alt_random_r_debug(buf,result, false);
+  return alt_random_r_debug(buf,result, 0);
 }
 
 int
-alt_random_r_debug (struct alt_random_data *buf, int32_t *result, bool printDebug)
+alt_random_r_debug (struct alt_random_data *buf, int32_t *result, int printDebug)
 {
   int32_t *state;
 

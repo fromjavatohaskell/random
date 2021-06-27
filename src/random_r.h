@@ -17,4 +17,4 @@ extern int alt_initstate_r (unsigned int seed, char *arg_state, size_t n, struct
 extern int alt_setstate_r (char *arg_state, struct alt_random_data *buf);
 extern int alt_srandom_r (unsigned int seed, struct alt_random_data *buf);
 extern int alt_random_r (struct alt_random_data *buf, int32_t *result);
-extern int alt_random_r_debug (struct alt_random_data *buf, int32_t *result, bool printDebug);
+extern int alt_random_r_debug (struct alt_random_data *buf, int32_t *result, int printDebug);
