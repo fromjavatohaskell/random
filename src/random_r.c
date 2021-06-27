@@ -55,8 +55,10 @@
  */
 
 //#include <stdlib.h>
+#include <stdbool.h>
 #include <stdint.h>
 #include <stddef.h>
+#include <stdio.h>
 #include "random_r.h"
 
 
@@ -101,12 +103,6 @@
    the polynomial (actually a trinomial) that the R.N.G. is based on, and
    separation between the two lower order coefficients of the trinomial.  */
 
-/* Linear congruential.  */
-#define	TYPE_0		0
-#define	BREAK_0		8
-#define	DEG_0		0
-#define	SEP_0		0
-
 /* x**7 + x**3 + 1.  */
 #define	TYPE_1		1
 #define	BREAK_1		32
@@ -132,22 +128,29 @@
 #define	SEP_4		1
 
 
-/* Array versions of the above information to make code run faster.
-   Relies on fact that TYPE_i == i.  */
+/* MAX_TYPES is used both for validation and for saving/decoding state information */
+#define	MAX_TYPES	5
 
-#define	MAX_TYPES	5	/* Max number of types above.  */
+int get_degree(int type) {
+  switch(type) {
+     case TYPE_1: return DEG_1;
+     case TYPE_2: return DEG_2;
+     case TYPE_3: return DEG_3;
+     case TYPE_4: return DEG_4;
+     default: return -1;
+  }
+}
 
-struct random_poly_info
-{
-  int seps[MAX_TYPES];
-  int degrees[MAX_TYPES];
-};
+int get_sep(int type) {
+  switch(type) {
+     case TYPE_1: return SEP_1;
+     case TYPE_2: return SEP_2;
+     case TYPE_3: return SEP_3;
+     case TYPE_4: return SEP_4;
+     default: return -1;
+  }
+}
 
-static const struct random_poly_info random_poly_info =
-{
-  { SEP_0, SEP_1, SEP_2, SEP_3, SEP_4 },
-  { DEG_0, DEG_1, DEG_2, DEG_3, DEG_4 }
-};
 
 
 
@@ -180,8 +183,6 @@ alt_srandom_r (unsigned int seed, struct alt_random_data *buf)
   if (seed == 0)
     seed = 1;
   state[0] = seed;
-  if (type == TYPE_0)
-    goto done;
 
   dst = state;
   word = seed;
@@ -216,6 +217,19 @@ alt_srandom_r (unsigned int seed, struct alt_random_data *buf)
 }
 
 
+int get_type_r(size_t n) {
+  int type;
+  if (n >= BREAK_3)
+    type = n < BREAK_4 ? TYPE_3 : TYPE_4;
+  else if (n < BREAK_1)
+    {
+       return -1;
+    }
+  else
+    type = n < BREAK_2 ? TYPE_1 : TYPE_2;
+  return type;
+}
+
 
 
 /* Initialize the state information in the given array of N bytes for
@@ -240,27 +254,17 @@ alt_initstate_r (unsigned int seed, char *arg_state, size_t n,
   if (old_state != NULL)
     {
       int old_type = buf->rand_type;
-      if (old_type == TYPE_0)
-	old_state[-1] = TYPE_0;
-      else
-	old_state[-1] = (MAX_TYPES * (buf->rptr - old_state)) + old_type;
+      old_state[-1] = (MAX_TYPES * (buf->rptr - old_state)) + old_type;
     }
 
-  int type;
-  if (n >= BREAK_3)
-    type = n < BREAK_4 ? TYPE_3 : TYPE_4;
-  else if (n < BREAK_1)
+  int type = get_type_r(n);
+  if (type < 0)
     {
-      if (n < BREAK_0)
-	goto fail;
-
-      type = TYPE_0;
+       goto fail;
     }
-  else
-    type = n < BREAK_2 ? TYPE_1 : TYPE_2;
 
-  int degree = random_poly_info.degrees[type];
-  int separation = random_poly_info.seps[type];
+  int degree = get_degree(type);
+  int separation = get_sep(type);
 
   buf->rand_type = type;
   buf->rand_sep = separation;
@@ -273,14 +277,11 @@ alt_initstate_r (unsigned int seed, char *arg_state, size_t n,
 
   alt_srandom_r (seed, buf);
 
-  state[-1] = TYPE_0;
-  if (type != TYPE_0)
-    state[-1] = (buf->rptr - state) * MAX_TYPES + type;
+  state[-1] = (buf->rptr - state) * MAX_TYPES + type;
 
   return 0;
 
  fail:
-//  set_errno (EINVAL);
   return -1;
 }
 
@@ -308,25 +309,19 @@ alt_setstate_r (char *arg_state, struct alt_random_data *buf)
 
   old_type = buf->rand_type;
   old_state = buf->state;
-  if (old_type == TYPE_0)
-    old_state[-1] = TYPE_0;
-  else
-    old_state[-1] = (MAX_TYPES * (buf->rptr - old_state)) + old_type;
+  old_state[-1] = (MAX_TYPES * (buf->rptr - old_state)) + old_type;
 
   type = new_state[-1] % MAX_TYPES;
-  if (type < TYPE_0 || type > TYPE_4)
+  if (type < TYPE_1 || type > TYPE_4)
     goto fail;
 
-  buf->rand_deg = degree = random_poly_info.degrees[type];
-  buf->rand_sep = separation = random_poly_info.seps[type];
+  buf->rand_deg = degree = get_degree(type);
+  buf->rand_sep = separation = get_sep(type);
   buf->rand_type = type;
 
-  if (type != TYPE_0)
-    {
-      int rear = new_state[-1] / MAX_TYPES;
-      buf->rptr = &new_state[rear];
-      buf->fptr = &new_state[(rear + separation) % degree];
-    }
+  int rear = new_state[-1] / MAX_TYPES;
+  buf->rptr = &new_state[rear];
+  buf->fptr = &new_state[(rear + separation) % degree];
   buf->state = new_state;
   /* Set end_ptr too.  */
   buf->end_ptr = &new_state[degree];
@@ -334,12 +329,13 @@ alt_setstate_r (char *arg_state, struct alt_random_data *buf)
   return 0;
 
  fail:
-//  set_errno (EINVAL);
   return -1;
 }
 
 
-/* If we are using the trivial TYPE_0 R.N.G., just do the old linear
+/* Remove code for trivial TYPE _ 0 R.N.G.
+
+   If we are using the trivial TYPE _ 0 R.N.G., just do the old linear
    congruential bit.  Otherwise, we do our fancy trinomial stuff, which is the
    same in all the other cases due to all the global variables that have been
    set up.  The basic operation is to add the number at the rear pointer into
@@ -349,9 +345,13 @@ alt_setstate_r (char *arg_state, struct alt_random_data *buf)
    Note: The code takes advantage of the fact that both the front and
    rear pointers can't wrap on the same call by not testing the rear
    pointer if the front one has wrapped.  Returns a 31-bit random number.  */
+int
+alt_random_r (struct alt_random_data *buf, int32_t *result) {
+  return alt_random_r_debug(buf,result, false);
+}
 
 int
-alt_random_r (struct alt_random_data *buf, int32_t *result)
+alt_random_r_debug (struct alt_random_data *buf, int32_t *result, bool printDebug)
 {
   int32_t *state;
 
@@ -360,20 +360,21 @@ alt_random_r (struct alt_random_data *buf, int32_t *result)
 
   state = buf->state;
 
-  if (buf->rand_type == TYPE_0)
-    {
-      int32_t val = ((state[0] * 1103515245U) + 12345U) & 0x7fffffff;
-      state[0] = val;
-      *result = val;
-    }
-  else
-    {
       int32_t *fptr = buf->fptr;
       int32_t *rptr = buf->rptr;
       int32_t *end_ptr = buf->end_ptr;
       uint32_t val;
 
+      if (printDebug) {
+         int fptrIndex = fptr - state; 
+         int rptrIndex = rptr - state; 
+         int32_t fptrValue = *fptr;
+         int32_t rptrValue = *rptr;
+         printf("fptr %d rptr %d fptrValue %08x rptrValut %08x\n", fptrIndex, rptrIndex, fptrValue, rptrValue);
+      }
+
       val = *fptr += (uint32_t) *rptr;
+
       /* Chucking least random bit.  */
       *result = val >> 1;
       ++fptr;
@@ -390,11 +391,9 @@ alt_random_r (struct alt_random_data *buf, int32_t *result)
 	}
       buf->fptr = fptr;
       buf->rptr = rptr;
-    }
   return 0;
 
  fail:
-//  set_errno (EINVAL);
   return -1;
 }
 

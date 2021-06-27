@@ -1,5 +1,5 @@
-(gdb) ptype /o struct random_data
-/* offset    |  size */  type = struct random_data {
+(gdb) ptype /o struct alt_random_data
+/* offset    |  size */  type = struct alt_random_data {
 /*    0      |     8 */    int32_t *fptr;
 /*    8      |     8 */    int32_t *rptr;
 /*   16      |     8 */    int32_t *state;

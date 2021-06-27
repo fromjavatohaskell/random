@@ -3,3 +3,5 @@ rm random_r.o test_random_r.o
 gcc -g -c random_r.c
 gcc -g -c test_random_r.c
 gcc -g -o test_random random_r.o test_random_r.o
+gcc -g -o test_canonical_random test_canonical_random.c
+gcc -g -o test_alt_random random_r.o test_alt_random.c
